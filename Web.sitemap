@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<siteMap xmlns="http://schemas.microsoft.com/AspNet/SiteMap-File-1.0" >
+	<siteMapNode url="~/Home.aspx" title="Home" description="Index">
+		<siteMapNode url="~/FeedbackCategory.aspx" title="Feedback" description="Feedback" roles="Student"/>
+
+		<siteMapNode url="~/Admin.aspx" title="Admin" description="Admin" roles="Admin_Coordinator" />
+
+
+		<siteMapNode url="~/Report.aspx" title="Report" description="Report" roles="Admin_Coordinator" />
+
+		<!-- The Logout link is handled programmatically, not in the sitemap -->
+
+	</siteMapNode>
+</siteMap>
