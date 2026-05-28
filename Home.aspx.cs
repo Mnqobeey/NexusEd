@@ -11,11 +11,15 @@ namespace NexusEd
 {
     public partial class Home : System.Web.UI.Page
     {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            AuthNavigation.Configure(this, Menu1);
+        }
 
         protected void btnShare_Click(object sender, EventArgs e)
         {
-            Session["SelectedUserType"] = "student";
-            Response.Redirect("Login.aspx");
+            Session["PreferredUserType"] = AuthNavigation.StudentRole;
+            Response.Redirect("Login.aspx?msg=loginRequired&ReturnUrl=FeedbackCategory.aspx");
 
         }
 

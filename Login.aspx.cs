@@ -15,13 +15,15 @@ namespace NexusEd
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            AuthNavigation.Configure(this, Menu1);
+            ShowAccessNotice();
 
 
             if (!IsPostBack)
             {
                 txtName.Focus();
 
-                string userType = Session["SelectedUserType"] as string;
+                string userType = Session["PreferredUserType"] as string;
                 if (userType != null)
                 {
                     if (userType.Equals("Student", StringComparison.OrdinalIgnoreCase))
@@ -33,13 +35,21 @@ namespace NexusEd
                         rbAdmin.Checked = true;
                     }
 
-                    Session["SelectedUserType"] = null;
+                    Session["PreferredUserType"] = null;
                 }
             }
         }
 
         protected void btnLogin_Click(object sender, EventArgs e)
         {
+            lblerrorMessage.Text = string.Empty;
+
+            if (!Page.IsValid)
+            {
+                lblerrorMessage.Text = "Please enter your username and password.";
+                return;
+            }
+
             string selectedUserType = string.Empty;
 
 
@@ -66,24 +76,52 @@ namespace NexusEd
                         Session["StudentID"] = studentId;
                     }
 
-                    if (selectedUserType == "Student")
-                    {
-                        Response.Redirect("FeedbackCategory.aspx");
-                    }
-                    else if (selectedUserType == "Admin_Coordinator")
-                    {
-                        Response.Redirect("Admin.aspx");
-                    }
+                    Response.Redirect(GetPostLoginRedirect(selectedUserType));
                 }
                 else
                 {
-                    lblerrorMessage.Text = "Invalid username, password, or selected user type.";
+                    lblerrorMessage.Text = "Incorrect login details. Check your username, password, and selected role.";
                 }
             }
             else
             {
-                lblerrorMessage.Text = "Please select a user type.";
+                lblerrorMessage.Text = "Please select Student or Administrator before signing in.";
             }
+        }
+
+        private void ShowAccessNotice()
+        {
+            string messageKey = Request.QueryString["msg"];
+            string message = string.Empty;
+
+            if (string.Equals(messageKey, "loginRequired", StringComparison.OrdinalIgnoreCase))
+            {
+                message = "Please login first to continue.";
+            }
+            else if (string.Equals(messageKey, "unauthorized", StringComparison.OrdinalIgnoreCase))
+            {
+                message = "You do not have permission to access that page.";
+            }
+
+            if (string.IsNullOrEmpty(message))
+            {
+                loginNotice.Visible = false;
+                return;
+            }
+
+            litLoginNoticeMessage.Text = Server.HtmlEncode(message);
+            loginNotice.Visible = true;
+        }
+
+        private string GetPostLoginRedirect(string selectedUserType)
+        {
+            string returnUrl = Request.QueryString["ReturnUrl"];
+            if (AuthNavigation.IsReturnUrlAllowedForRole(returnUrl, selectedUserType))
+            {
+                return AuthNavigation.NormalizeReturnUrl(returnUrl);
+            }
+
+            return AuthNavigation.GetDefaultLandingUrl(selectedUserType);
         }
 
 
@@ -109,7 +147,7 @@ namespace NexusEd
                 }
                 else
                 {
-                    lblerrorMessage.Text = "User type not found.";
+                    lblerrorMessage.Text = "Please select Student or Administrator before signing in.";
                     return false;
                 }
 

@@ -22,7 +22,7 @@
 
              <header>
                 <a href="Home.aspx">
-                    <img id="Image1" href="Home.aspx" src="Images/1.png" alt="Logo" />
+                    <img id="Image1" src="Images/1.png" alt="Logo" />
                 </a>
 
                 <h1>Home</h1>
@@ -49,24 +49,23 @@
                 </asp:Menu>
 
             <asp:SiteMapDataSource ID="SiteMapDataSource1" runat="server" />
-                                    <a href="Login.aspx"type="button" class="btnLogin6" id="New">Sign-in</a>
+                                    <a id="lnkSignIn" runat="server" href="Login.aspx" class="btnLogin6">Sign-in</a>
+                                    <a id="lnkSignOut" runat="server" href="Logout.aspx" class="btnLogin5">Sign-out</a>
 
             </nav>
 
-            <center>
-            <section id="flexItem1">
+            <section id="flexItem1" class="home-main">
+                <h2 class="home-title">Welcome to NexusEd</h2>
                 <div class="homeContainer">
-                    <h2 class="p-centered">Welcome to NexusEd</h2>
-                        <p class="p-centered">A system that connects students, lecturers, and administrators to improve educational experiences.</p>
-                    <br />
+                    <div class="home-hero">
+                        <div class="hero-media">
+                            <img id="Image2" src="Images/Feedback.jpg" alt="Feedback illustration" />
+                        </div>
 
-
-                    <img id="Image2"  src="Images/Feedback.jpg" alt="Feedback img"   height:600px; />
-
-                    <asp:Button ID="btnShare" runat="server" Text="Share your thoughts"  OnClick="btnShare_Click" CssClass="centered-button"/>
-                    <br />
-                    <br />
-                    <br />
+                        <div class="hero-actions">
+                            <asp:Button ID="btnShare" runat="server" Text="Give Feedback" OnClick="btnShare_Click" CssClass="centered-button"/>
+                        </div>
+                    </div>
 
                 </div>
 
@@ -75,10 +74,9 @@
                   <p class="loading-text">Loading...</p>
                 </div>
             </section>
-            </center>
 
           <footer>
-             <p id="creator">NexusEd &copy; 2024</p>
+             <p id="creator">NexusEd &copy; 2026</p>
         </footer>
 
         </div>

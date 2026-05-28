@@ -4,6 +4,8 @@
 		<siteMapNode url="~/FeedbackCategory.aspx" title="Feedback" description="Feedback" roles="Student"/>
 
 		<siteMapNode url="~/Admin.aspx" title="Admin" description="Admin" roles="Admin_Coordinator" />
+		<siteMapNode url="~/AdminDashboard.aspx" title="Dashboard" description="Admin Dashboard" roles="Admin_Coordinator" />
+		<siteMapNode url="~/View.aspx" title="View" description="View Feedback" roles="Admin_Coordinator" />
 
 
 		<siteMapNode url="~/Report.aspx" title="Report" description="Report" roles="Admin_Coordinator" />
