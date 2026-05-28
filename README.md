@@ -13,7 +13,11 @@ NexusEd is a student feedback system for collecting, managing, and reviewing aca
 
 1. Open `NexusEd.sln` in Visual Studio.
 2. Restore NuGet packages.
-3. Add your own local database file as `App_Data/NexusEdLocal.mdf` or update `MyConnection` in `Web.config`.
+3. Create the local database with `DatabaseSetup.sql`, or add your own local database file as `App_Data/NexusEdLocal.mdf` and update `MyConnection` in `Web.config`.
 4. Run the project with IIS Express.
 
-Local database files, build output, and credentials are intentionally not committed.
+## Screenshots
+
+Current UI screenshots are stored in `docs/screenshots`.
+
+Local database files and build output are intentionally not committed. `DatabaseSetup.sql` contains sample development users and seed data for local testing.

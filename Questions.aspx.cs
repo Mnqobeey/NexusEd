@@ -8,8 +8,19 @@ namespace NexusEd
 {
     public partial class Questions : System.Web.UI.Page
     {
+        // FEEDBACK currently stores three fixed rating columns, so each category is capped at three questions.
+        private const int MaximumQuestionsPerCategory = 3;
+        private const string MaximumQuestionsMessage = "This version supports a maximum of 3 feedback questions per category.";
+
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!AuthNavigation.RequireAdmin(this))
+            {
+                return;
+            }
+
+            AuthNavigation.Configure(this, Menu1);
+
             if (!IsPostBack)
             {
                 LoadCategories();
@@ -22,7 +33,7 @@ namespace NexusEd
             SqlDataSource categoryDataSource = new SqlDataSource
             {
                 ConnectionString = ConfigurationManager.ConnectionStrings["MyConnection"].ConnectionString,
-                SelectCommand = "SELECT CategoryID, CategoryType FROM CATEGORY"
+                SelectCommand = "SELECT CategoryID, CategoryType FROM CATEGORY ORDER BY CategoryType"
             };
 
             ddlCategories.DataSource = categoryDataSource;
@@ -35,9 +46,21 @@ namespace NexusEd
 
         protected void btnAddQuestion_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(txtQuestion.Text) && ddlCategories.SelectedIndex > 0)
+            lblError.Visible = false;
+            editForm.Visible = false;
+            GridView1.SelectedIndex = -1;
+
+            if (!string.IsNullOrWhiteSpace(txtQuestion.Text) && ddlCategories.SelectedIndex > 0)
             {
                 int categoryID = Convert.ToInt32(ddlCategories.SelectedValue);
+
+                if (GetQuestionCount(categoryID) >= MaximumQuestionsPerCategory)
+                {
+                    lblError.Text = MaximumQuestionsMessage;
+                    lblError.Visible = true;
+                    addQuestionsForm.Style.Add("display", "block");
+                    return;
+                }
 
                 SqlDataSource1.InsertParameters["Question"].DefaultValue = txtQuestion.Text;
                 SqlDataSource1.InsertParameters["CategoryID"].DefaultValue = categoryID.ToString();
@@ -46,6 +69,8 @@ namespace NexusEd
                 txtQuestion.Text = "";
                 ddlCategories.SelectedIndex = 0;
                 addQuestionsForm.Style.Add("display", "none");
+                txtQuestionID.Text = string.Empty;
+                txtQuestionEdit.Text = string.Empty;
 
                 GridView1.DataBind();
             }
@@ -53,6 +78,7 @@ namespace NexusEd
             {
                 lblError.Text = "Please enter a question and select a category.";
                 lblError.Visible = true;
+                addQuestionsForm.Style.Add("display", "block");
             }
         }
 
@@ -90,13 +116,40 @@ namespace NexusEd
 
         protected void GridView1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            GridViewRow selectedRow = GridView1.SelectedRow;
-
-            if (selectedRow != null)
+            if (GridView1.SelectedDataKey != null && int.TryParse(GridView1.SelectedDataKey.Value.ToString(), out int questionID))
             {
-                txtQuestionID.Text = Server.HtmlEncode(selectedRow.Cells[1].Text);
-                txtQuestionEdit.Text = Server.HtmlEncode(selectedRow.Cells[2].Text);
+                txtQuestionID.Text = questionID.ToString();
+                txtQuestionEdit.Text = GetQuestionByID(questionID);
+                addQuestionsForm.Style.Add("display", "none");
                 editForm.Visible = true;
+            }
+        }
+
+        private int GetQuestionCount(int categoryId)
+        {
+            const string query = "SELECT COUNT(*) FROM dbo.FEEDBACK_QUESTIONS WHERE CategoryID = @CategoryID";
+
+            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["MyConnection"].ConnectionString))
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@CategoryID", categoryId);
+                connection.Open();
+                return Convert.ToInt32(command.ExecuteScalar());
+            }
+        }
+
+        private string GetQuestionByID(int questionID)
+        {
+            const string query = "SELECT Question FROM dbo.FEEDBACK_QUESTIONS WHERE QuestionID = @QuestionID";
+
+            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["MyConnection"].ConnectionString))
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@QuestionID", questionID);
+                connection.Open();
+
+                object result = command.ExecuteScalar();
+                return result == null ? string.Empty : result.ToString();
             }
         }
     }

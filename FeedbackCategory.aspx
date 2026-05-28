@@ -37,7 +37,7 @@
                         <asp:MenuItem NavigateUrl="~/Home.aspx" Text="Home" />
                         <asp:MenuItem NavigateUrl="~/Login.aspx" Text="Login" />
                         <asp:MenuItem NavigateUrl="~/Admin.aspx" Text="Admin" />
-                        <asp:MenuItem NavigateUrl="~/Feedback.aspx" Text="Feedback" />
+                        <asp:MenuItem NavigateUrl="~/FeedbackCategory.aspx" Text="Feedback" />
                         <asp:MenuItem NavigateUrl="~/View.aspx" Text="View" />
                         <asp:MenuItem NavigateUrl="~/Report.aspx" Text="Report" />
                         <asp:MenuItem NavigateUrl="~/Logout.aspx" Text="Logout" />
@@ -46,40 +46,42 @@
                     <StaticSelectedStyle BackColor="Silver" BorderColor="Silver" BorderStyle="Solid" Font-Bold="True" HorizontalPadding="1" VerticalPadding="1" Font-Overline="False" ForeColor="Black" BorderWidth="8" Font-Size="17" />
                 </asp:Menu>
                 <asp:SiteMapDataSource ID="SiteMapDataSource1" runat="server" />
-                <a href="Home.aspx"type="button" class="btnLogin5" id="New">Sign-out</a>
+                <a id="lnkSignIn" runat="server" href="Login.aspx" class="btnLogin6">Sign-in</a>
+                <a id="lnkSignOut" runat="server" href="Logout.aspx" class="btnLogin5">Sign-out</a>
             </nav>
 
-            <center>
                 <section id="flexItem1">
                     <div class="feedbackCategContainer">
-                        <img  src="Images/your-opinion-matters.png" width="400" height="270" />
-                        <h2 class="p-centered">Feedback</h2>
-                        <asp:Label ID="lblsubtitle1" runat="server" Text="Please choose a category from the options."></asp:Label>
-                        <br />
-                        <br />
-                        <div class="dropdown">
-                            <asp:DropDownList ID="ddlCategories" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlCategories_SelectedIndexChanged" CssClass="form-control no-box">
-                            </asp:DropDownList>
-                        </div>
-                        <br />
-                        <asp:Label ID="lblsubtitle2" runat="server" Text="Select below to provide feedback"></asp:Label>
-                        <br />
-                        <br />
+                        <div class="feedback-layout">
+                            <img src="Images/your-opinion-matters.png" alt="Your opinion matters" class="feedback-illustration" />
+                            <div>
+                                <div class="page-eyebrow">Student feedback</div>
+                                <h2 class="p-centered">Choose Feedback Category</h2>
+                                <p class="page-intro">Select a category, choose the related item, then submit your feedback.</p>
+                                <asp:Label ID="lblsubtitle1" runat="server" Text="Please choose a category from the options."></asp:Label>
 
-                        <center>
-                            <asp:GridView ID="gvTableData" runat="server" BackColor="#CCCCCC" BorderColor="#999999" BorderStyle="Solid" BorderWidth="3px" CellPadding="4" CellSpacing="2" ForeColor="Black" Width="609px" AutoGenerateSelectButton="True" OnSelectedIndexChanged="gvTableData_SelectedIndexChanged" HorizontalAlign="Center" PageSize="4">
+                                <div class="dropdown">
+                                    <asp:DropDownList ID="ddlCategories" runat="server" AutoPostBack="true" OnSelectedIndexChanged="ddlCategories_SelectedIndexChanged" CssClass="form-control no-box">
+                                    </asp:DropDownList>
+                                </div>
+
+                                <asp:Label ID="lblsubtitle2" runat="server" Text="Select below to provide feedback"></asp:Label>
+                            </div>
+                        </div>
+
+                        <div class="table-scroll">
+                            <asp:GridView ID="gvTableData" runat="server" CssClass="modern-grid" BackColor="#CCCCCC" BorderColor="#999999" BorderStyle="Solid" BorderWidth="3px" CellPadding="4" CellSpacing="2" ForeColor="Black" Width="609px" AutoGenerateSelectButton="True" OnSelectedIndexChanged="gvTableData_SelectedIndexChanged" HorizontalAlign="Center" PageSize="4">
                                 <FooterStyle BackColor="#CCCCCC" />
                                 <HeaderStyle BackColor="Black" Font-Bold="True" ForeColor="White" />
                                 <PagerStyle BackColor="#CCCCCC" ForeColor="Black" HorizontalAlign="Left" />
                                 <RowStyle BackColor="White" />
-                                <SelectedRowStyle BackColor="#000099" Font-Bold="True" ForeColor="White" />
+                                <SelectedRowStyle CssClass="grid-selected-row" />
                                 <SortedAscendingCellStyle BackColor="#F1F1F1" />
                                 <SortedAscendingHeaderStyle BackColor="#808080" />
                                 <SortedDescendingCellStyle BackColor="#CAC9C9" />
                                 <SortedDescendingHeaderStyle BackColor="#383838" />
                             </asp:GridView>
-                        </center>
-                        <br />
+                        </div>
 
                         <div>
                             <asp:TextBox ID="txtStudentID" runat="server" ReadOnly="true" CssClass="form-control" Visible="false" />
@@ -100,9 +102,8 @@
                         </div>
                     </div>
                 </section>
-            </center>
              <footer>
-                 <p id="creator">NexusEd &copy; 2024</p>
+                 <p id="creator">NexusEd &copy; 2026</p>
             </footer>
         </div>
     </form>

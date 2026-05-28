@@ -11,10 +11,12 @@ namespace NexusEd
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (Session["SelectedUserType"] == null || Session["SelectedUserType"].ToString() != "Admin_Coordinator")
+            if (!AuthNavigation.RequireAdmin(this))
             {
-                Response.Redirect("Login.aspx");
+                return;
             }
+
+            AuthNavigation.Configure(this, Menu1);
         }
 
         protected void btnCat_Click(object sender, EventArgs e)
@@ -25,6 +27,11 @@ namespace NexusEd
         protected void btnQues_Click(object sender, EventArgs e)
         {
             Response.Redirect("Questions.aspx");
+        }
+
+        protected void btnDash_Click(object sender, EventArgs e)
+        {
+            Response.Redirect("AdminDashboard.aspx");
         }
     }
 }

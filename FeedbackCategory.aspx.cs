@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 
@@ -9,12 +11,17 @@ namespace NexusEd
 {
     public partial class FeedbackCategory : System.Web.UI.Page
     {
+        // FEEDBACK currently stores three fixed rating columns, so only three rating questions can be saved.
+        private const int SupportedRatingQuestionCount = 3;
+
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (Session["SelectedUserType"] == null || Session["SelectedUserType"].ToString() != "Student")
+            if (!AuthNavigation.RequireStudent(this))
             {
-                Response.Redirect("Login.aspx");
+                return;
             }
+
+            AuthNavigation.Configure(this, Menu1);
 
             if (!IsPostBack)
             {
@@ -80,8 +87,44 @@ namespace NexusEd
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                gvTableData.DataSource = dt;
-                gvTableData.DataBind();
+                BindSelectableData(dt, "ModuleID");
+            }
+        }
+
+        private void BindSelectableData(DataTable dt, string keyColumn)
+        {
+            gvTableData.DataKeyNames = new[] { keyColumn };
+            gvTableData.DataSource = dt;
+            gvTableData.DataBind();
+            HideGridColumn(gvTableData, keyColumn);
+        }
+
+        private void HideGridColumn(GridView grid, string columnName)
+        {
+            if (grid.HeaderRow == null)
+            {
+                return;
+            }
+
+            int columnIndex = -1;
+            for (int i = 0; i < grid.HeaderRow.Cells.Count; i++)
+            {
+                if (grid.HeaderRow.Cells[i].Text == columnName)
+                {
+                    columnIndex = i;
+                    break;
+                }
+            }
+
+            if (columnIndex < 0)
+            {
+                return;
+            }
+
+            grid.HeaderRow.Cells[columnIndex].Visible = false;
+            foreach (GridViewRow row in grid.Rows)
+            {
+                row.Cells[columnIndex].Visible = false;
             }
         }
 
@@ -167,8 +210,7 @@ namespace NexusEd
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                gvTableData.DataSource = dt;
-                gvTableData.DataBind();
+                BindSelectableData(dt, "FacilityID");
             }
         }
 
@@ -186,8 +228,7 @@ namespace NexusEd
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                gvTableData.DataSource = dt;
-                gvTableData.DataBind();
+                BindSelectableData(dt, "AdminID");
             }
         }
 
@@ -208,8 +249,7 @@ namespace NexusEd
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                gvTableData.DataSource = dt;
-                gvTableData.DataBind();
+                BindSelectableData(dt, "LecturerID");
             }
         }
 
@@ -229,8 +269,7 @@ namespace NexusEd
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                gvTableData.DataSource = dt;
-                gvTableData.DataBind();
+                BindSelectableData(dt, "TutorID");
             }
         }
 
@@ -241,7 +280,7 @@ namespace NexusEd
 
             using (SqlConnection con = new SqlConnection(connectionString))
             {
-                string query = "SELECT QuestionID, Question FROM FEEDBACK_QUESTIONS WHERE CategoryID = @CategoryID";
+                string query = "SELECT TOP (3) QuestionID, Question FROM FEEDBACK_QUESTIONS WHERE CategoryID = @CategoryID ORDER BY QuestionID";
                 SqlCommand cmd = new SqlCommand(query, con);
                 cmd.Parameters.AddWithValue("@CategoryID", categoryId);
 
@@ -337,15 +376,23 @@ namespace NexusEd
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                gvTableData.DataSource = dt;
-                gvTableData.DataBind();
+                if (dt.Columns.Count > 0 && dt.Columns[0].ColumnName.EndsWith("ID", StringComparison.OrdinalIgnoreCase))
+                {
+                    BindSelectableData(dt, dt.Columns[0].ColumnName);
+                }
+                else
+                {
+                    gvTableData.DataKeyNames = new string[0];
+                    gvTableData.DataSource = dt;
+                    gvTableData.DataBind();
+                }
             }
         }
 
         protected void gvTableData_SelectedIndexChanged(object sender, EventArgs e)
         {
             GridViewRow row = gvTableData.SelectedRow;
-            string selectedId = row.Cells[1].Text;
+            string selectedId = gvTableData.SelectedDataKey != null ? gvTableData.SelectedDataKey.Value.ToString() : row.Cells[1].Text;
             txtSelectedID.Text = selectedId;
 
             int categoryId = Convert.ToInt32(ddlCategories.SelectedValue);
@@ -372,12 +419,29 @@ namespace NexusEd
             if (categoryId > 0)
             {
                 string selectedId = txtSelectedID.Text;
+                string selectedCategory = ddlCategories.SelectedItem.Text;
+
+                if (RequiresRelatedSelection(selectedCategory) && string.IsNullOrWhiteSpace(selectedId))
+                {
+                    RestoreFeedbackForm(categoryId);
+                    ShowErrorMessage("Please select an item before submitting your feedback.");
+                    return;
+                }
+
+                int[] ratings;
+                string ratingValidationMessage;
+                if (!TryGetSupportedRatings(categoryId, out ratings, out ratingValidationMessage))
+                {
+                    RestoreFeedbackForm(categoryId);
+                    ShowErrorMessage(ratingValidationMessage);
+                    return;
+                }
 
                 if (categoryId == GetCategoryId("Modules"))
                 {
                     if (IsStudentRegisteredForCategory(categoryId, selectedId, studentId))
                     {
-                        int feedbackId = SaveFeedback(categoryId, studentId, selectedId);
+                        int feedbackId = SaveFeedback(categoryId, studentId, ratings);
                         SaveModuleFeedback(feedbackId, selectedId);
                         ShowSuccessMessage();
                     }
@@ -390,7 +454,7 @@ namespace NexusEd
                 {
                     if (IsStudentRegisteredForCategory(categoryId, selectedId, studentId))
                     {
-                        int feedbackId = SaveFeedback(categoryId, studentId, selectedId);
+                        int feedbackId = SaveFeedback(categoryId, studentId, ratings);
                         SaveLecturerFeedback(feedbackId, selectedId);
                         ShowSuccessMessage();
                     }
@@ -406,7 +470,7 @@ namespace NexusEd
                 {
                     if (IsStudentRegisteredForCategory(categoryId, selectedId, studentId))
                     {
-                        int feedbackId = SaveFeedback(categoryId, studentId, selectedId);
+                        int feedbackId = SaveFeedback(categoryId, studentId, ratings);
                         SaveTutorFeedback(feedbackId, selectedId);
                         ShowSuccessMessage();
                     }
@@ -420,21 +484,21 @@ namespace NexusEd
 
                 else if (categoryId == GetCategoryId("Administration"))
                 {
-                    int feedbackId = SaveFeedback(categoryId, studentId, selectedId);
+                    int feedbackId = SaveFeedback(categoryId, studentId, ratings);
                     SaveAdminFeedback(feedbackId, selectedId);
 
                     ShowSuccessMessage();
                 }
                 else if (categoryId == GetCategoryId("Facilities"))
                 {
-                    int feedbackId = SaveFeedback(categoryId, studentId, selectedId);
+                    int feedbackId = SaveFeedback(categoryId, studentId, ratings);
                     SaveFacilityFeedback(feedbackId, selectedId);
 
                     ShowSuccessMessage();
                 }
                 else
                 {
-                    int feedbackId = SaveFeedback(categoryId, studentId, selectedId);
+                    int feedbackId = SaveFeedback(categoryId, studentId, ratings);
                     ShowSuccessMessage();
                 }
             }
@@ -593,7 +657,7 @@ namespace NexusEd
             }
         }
 
-        private int SaveFeedback(int categoryId, int studentId, string selectedModuleId)
+        private int SaveFeedback(int categoryId, int studentId, int[] ratings)
         {
             string connectionString = ConfigurationManager.ConnectionStrings["MyConnection"].ConnectionString;
             int feedbackId;
@@ -604,13 +668,9 @@ namespace NexusEd
 
                 SqlCommand cmd = new SqlCommand(query, con);
 
-                int rating1 = GetRatingForQuestion(1);
-                int rating2 = GetRatingForQuestion(2);
-                int rating3 = GetRatingForQuestion(3);
-
-                cmd.Parameters.AddWithValue("@Rating1", rating1);
-                cmd.Parameters.AddWithValue("@Rating2", rating2);
-                cmd.Parameters.AddWithValue("@Rating3", rating3);
+                cmd.Parameters.AddWithValue("@Rating1", ratings[0]);
+                cmd.Parameters.AddWithValue("@Rating2", ratings[1]);
+                cmd.Parameters.AddWithValue("@Rating3", ratings[2]);
                 cmd.Parameters.AddWithValue("@Comment", txtComment.Text);
                 cmd.Parameters.AddWithValue("@FeedbackDate", DateTime.Now);
                 cmd.Parameters.AddWithValue("@StudentID", studentId);
@@ -623,18 +683,114 @@ namespace NexusEd
             return feedbackId;
         }
 
-
-        private int GetRatingForQuestion(int questionNumber)
+        private bool TryGetSupportedRatings(int categoryId, out int[] ratings, out string validationMessage)
         {
-            string radioButtonName = $"Question_{questionNumber}";
-            string selectedValue = Request.Form[radioButtonName];
-            if (!string.IsNullOrEmpty(selectedValue))
+            ratings = new int[SupportedRatingQuestionCount];
+            validationMessage = string.Empty;
+
+            int questionCount = GetSupportedQuestionCount(categoryId);
+            if (questionCount == 0)
             {
-                return int.Parse(selectedValue.Split('_')[2]);
+                validationMessage = "No feedback questions are available for this category.";
+                return false;
             }
-            return 0;
+
+            if (questionCount < SupportedRatingQuestionCount)
+            {
+                validationMessage = "This category needs 3 feedback questions before feedback can be submitted.";
+                return false;
+            }
+
+            for (int questionNumber = 1; questionNumber <= SupportedRatingQuestionCount; questionNumber++)
+            {
+                int rating;
+                if (!TryGetRatingForQuestion(questionNumber, out rating))
+                {
+                    validationMessage = "Please answer all rating questions before submitting your feedback.";
+                    return false;
+                }
+
+                ratings[questionNumber - 1] = rating;
+            }
+
+            return true;
         }
 
+        private bool TryGetRatingForQuestion(int questionNumber, out int rating)
+        {
+            rating = 0;
+            string radioButtonName = "Question_" + questionNumber.ToString(CultureInfo.InvariantCulture);
+            string selectedValue = Request.Form[radioButtonName];
+
+            if (TryParseRating(selectedValue, out rating))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryParseRating(string selectedValue, out int rating)
+        {
+            rating = 0;
+            if (string.IsNullOrWhiteSpace(selectedValue))
+            {
+                return false;
+            }
+
+            if (int.TryParse(selectedValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out rating))
+            {
+                return rating >= 1 && rating <= 5;
+            }
+
+            string[] parts = selectedValue.Split('_');
+            if (parts.Length > 0 && int.TryParse(parts[parts.Length - 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out rating))
+            {
+                return rating >= 1 && rating <= 5;
+            }
+
+            return false;
+        }
+
+        private int GetSupportedQuestionCount(int categoryId)
+        {
+            const string query = @"
+SELECT COUNT(*)
+FROM
+(
+    SELECT TOP (3) QuestionID
+    FROM dbo.FEEDBACK_QUESTIONS
+    WHERE CategoryID = @CategoryID
+    ORDER BY QuestionID
+) AS SupportedQuestions;";
+
+            using (SqlConnection connection = new SqlConnection(ConfigurationManager.ConnectionStrings["MyConnection"].ConnectionString))
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@CategoryID", categoryId);
+                connection.Open();
+                return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+            }
+        }
+
+        private bool RequiresRelatedSelection(string categoryType)
+        {
+            return categoryType == "Administration"
+                || categoryType == "Facilities"
+                || categoryType == "Lecturers"
+                || categoryType == "Modules"
+                || categoryType == "Tutors";
+        }
+
+        private void RestoreFeedbackForm(int categoryId)
+        {
+            LoadFeedbackForm(categoryId);
+            pnlFeedbackForm.Visible = true;
+            txtComment.Visible = true;
+            btnSubmit.Visible = true;
+            lblsubtitle2.Visible = false;
+            imgRatings.Visible = true;
+        }
 
 
         private int GetCurrentStudentID()

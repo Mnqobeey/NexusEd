@@ -9,6 +9,13 @@ namespace NexusEd
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!AuthNavigation.RequireAdmin(this))
+            {
+                return;
+            }
+
+            AuthNavigation.Configure(this, Menu1);
+
             if (!IsPostBack)
             {
                 editForm.Visible = false;
@@ -17,20 +24,21 @@ namespace NexusEd
 
         protected void GridView1_SelectedIndexChanged(object sender, EventArgs e)
         {
-
-            GridViewRow selectedRow = GridView1.SelectedRow;
-
-            if (selectedRow != null)
+            if (GridView1.SelectedDataKey != null && int.TryParse(GridView1.SelectedDataKey.Value.ToString(), out int categoryID))
             {
-                txtCategoryID.Text = selectedRow.Cells[1].Text;
-                txtCategoryTypeEdit.Text = selectedRow.Cells[2].Text;
+                txtCategoryID.Text = categoryID.ToString();
+                txtCategoryTypeEdit.Text = GetCategoryTypeByID(categoryID);
 
+                addCategoryForm.Style.Add("display", "none");
                 editForm.Visible = true;
             }
         }
 
         protected void btnAddCategory_Click(object sender, EventArgs e)
         {
+            editForm.Visible = false;
+            GridView1.SelectedIndex = -1;
+
             if (!string.IsNullOrEmpty(txtCategoryType.Text))
             {
                 SqlDataSource1.InsertParameters["CategoryType"].DefaultValue = txtCategoryType.Text;
@@ -38,6 +46,8 @@ namespace NexusEd
 
                 txtCategoryType.Text = "";
                 addCategoryForm.Style.Add("display", "none");
+                txtCategoryID.Text = string.Empty;
+                txtCategoryTypeEdit.Text = string.Empty;
                 GridView1.DataBind();
 
                 ClientScript.RegisterStartupScript(this.GetType(), "confirmProceed", "if (confirmProceed()) { window.location='Questions.aspx'; }", true);
